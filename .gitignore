@@ -364,3 +364,4 @@ FodyWeavers.xsd
 
 # Databse Files "Custom"
 *.db
+/CourseLibrary.API/library.db
