@@ -97,7 +97,17 @@ public class CoursesController : ControllerBase
 
         if (courseForAuthorFromRepo == null)
         {
-            return NotFound();
+            var courseToAdd = _mapper.Map<Course>(course);
+            courseToAdd.Id = courseId;
+            _courseLibraryRepository.AddCourse(authorId , courseToAdd);
+            await _courseLibraryRepository.SaveAsync();
+
+            var courseToReturn = _mapper.Map<CourseDto>(courseToAdd);
+
+            return CreatedAtRoute(
+                "GetCourseForAuthor" ,
+                new {authorId , courseId = courseToReturn.Id} ,
+                courseToReturn);
         }
 
         _mapper.Map(course, courseForAuthorFromRepo);
