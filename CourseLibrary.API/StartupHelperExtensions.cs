@@ -1,6 +1,10 @@
-﻿using CourseLibrary.API.DbContexts;
+﻿using System.Net.Mime;
+using CourseLibrary.API.DbContexts;
 using CourseLibrary.API.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Serialization;
 
@@ -22,7 +26,42 @@ internal static class StartupHelperExtensions
             setupAction.SerializerSettings.ContractResolver =
                 new CamelCasePropertyNamesContractResolver();
         })
-        .AddXmlDataContractSerializerFormatters();
+        .AddXmlDataContractSerializerFormatters()
+        .ConfigureApiBehaviorOptions(setupAction =>
+        {
+            setupAction.InvalidModelStateResponseFactory = (context) =>
+            {
+                // creating a validation problem details object
+                var problemDetailsFactory = context.HttpContext
+                    .RequestServices
+                    .GetRequiredService<ProblemDetailsFactory>();
+
+                var validationProbllemDetails = problemDetailsFactory.CreateValidationProblemDetails(
+                    context.HttpContext,
+                    context.ModelState);
+
+
+                // add additional info not added by default
+                validationProbllemDetails.Detail =
+                    "see the errors field for details";
+                validationProbllemDetails.Instance =
+                    context.HttpContext.Request.Path;
+
+                
+                // report invalid model state response as validation issues
+                validationProbllemDetails.Type =
+                    "https://courseLibrary.com/modelvalidationproblem";
+                validationProbllemDetails.Status = 
+                    StatusCodes.Status424FailedDependency;
+                validationProbllemDetails.Title = 
+                    "one or more validation error occured";
+
+                return new UnprocessableEntityObjectResult(validationProbllemDetails)
+                {
+                    ContentTypes = { "application/problem+json" }
+                };
+            };
+        });
 
         builder.Services.AddScoped<ICourseLibraryRepository, 
             CourseLibraryRepository>();
