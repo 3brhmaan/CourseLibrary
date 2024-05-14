@@ -4,8 +4,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CourseLibrary.API.Models;
 
-public class CourseForUpdateDto
+public class CourseForUpdateDto : CourseForManipulationDto
 {
-    public string Title { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
+    [Required(ErrorMessage = "you should fill out the description")]
+    public override string Description
+    {
+        get => base.Description;
+        set => base.Description = value;
+    }
 }
