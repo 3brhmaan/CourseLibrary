@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.API.DbContexts;
-using CourseLibrary.API.Entities; 
+using CourseLibrary.API.Entities;
+using CourseLibrary.API.ResourceParameters;
 using Microsoft.EntityFrameworkCore;
 
 namespace CourseLibrary.API.Services;
@@ -120,22 +121,28 @@ public class CourseLibraryRepository : ICourseLibraryRepository
 #pragma warning restore CS8603 // Possible null reference return.
     }
 
-    public async Task<IEnumerable<Author>> GetAuthorsAsync(string? mainCategory , string? searchQuery)
+    public async Task<IEnumerable<Author>> GetAuthorsAsync(AuthorResourceParameters authorResourceParameters)
     {
-        if (string.IsNullOrWhiteSpace(mainCategory) && string.IsNullOrWhiteSpace(searchQuery))
+        if (authorResourceParameters is null)
+        {
+            throw new ArgumentNullException(nameof(authorResourceParameters));
+        }
+
+        if (string.IsNullOrWhiteSpace(authorResourceParameters.MainCategory) && 
+            string.IsNullOrWhiteSpace(authorResourceParameters.SearchQuery))
             return await GetAuthorsAsync();
 
         var collection = _context.Authors as IQueryable<Author>;
 
-        if (!string.IsNullOrWhiteSpace(mainCategory))
+        if (!string.IsNullOrWhiteSpace(authorResourceParameters.MainCategory))
         {
-            mainCategory = mainCategory.Trim();
+            var mainCategory = authorResourceParameters.MainCategory.Trim();
             collection = collection.Where(a => a.MainCategory == mainCategory);
         }
 
-        if (!string.IsNullOrWhiteSpace(searchQuery))
+        if (!string.IsNullOrWhiteSpace(authorResourceParameters.SearchQuery))
         {
-            searchQuery = searchQuery.Trim();
+            var searchQuery = authorResourceParameters.SearchQuery.Trim();
             collection = collection
                 .Where(a => 
                         a.MainCategory.Contains(searchQuery) ||
