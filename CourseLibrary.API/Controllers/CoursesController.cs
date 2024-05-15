@@ -137,7 +137,12 @@ public class CoursesController : ControllerBase
         if (courseForAuthorFromRepo == null)
         {
             var courseForUpdate = new CourseForUpdateDto();
-            patchDocument.ApplyTo(courseForUpdate);
+            patchDocument.ApplyTo(courseForUpdate , ModelState);
+
+            if (!TryValidateModel(courseForUpdate))
+            {
+                return ValidationProblem(ModelState);
+            }
 
             var courseToAdd = _mapper.Map<Course>(courseForUpdate);
             courseToAdd.Id = courseId;
