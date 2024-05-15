@@ -153,7 +153,12 @@ public class CoursesController : ControllerBase
 
         var courseToPatch = _mapper.Map<CourseForUpdateDto>(courseForAuthorFromRepo);
 
-        patchDocument.ApplyTo(courseToPatch);
+        patchDocument.ApplyTo(courseToPatch , ModelState);
+
+        if (!TryValidateModel(courseToPatch))
+        {
+            return ValidationProblem(ModelState);
+        }
 
         _mapper.Map(courseToPatch, courseForAuthorFromRepo);
         _courseLibraryRepository.UpdateCourse(courseForAuthorFromRepo);
