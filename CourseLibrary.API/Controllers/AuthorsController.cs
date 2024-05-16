@@ -1,10 +1,13 @@
 ﻿
 using AutoMapper;
 using CourseLibrary.API.Entities;
+using CourseLibrary.API.Helpers;
 using CourseLibrary.API.Models;
 using CourseLibrary.API.ResourceParameters;
 using CourseLibrary.API.Services;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace CourseLibrary.API.Controllers;
 
@@ -25,18 +28,83 @@ public class AuthorsController : ControllerBase
             throw new ArgumentNullException(nameof(mapper));
     }
 
-    [HttpGet]
+
+    public string? CreateAuthorsResourceUri(
+        AuthorResourceParameters authorResourceParameters,
+        ResourceUriType type)
+    {
+        switch (type)
+        {
+            case ResourceUriType.PreviousPage:
+                return Url.Link("GetAuthors", new
+                {
+                    pageNumber = authorResourceParameters.PageNumber - 1,
+                    pageSize = authorResourceParameters.PageSize,
+                    mainCategory = authorResourceParameters.MainCategory,
+                    searchQuery = authorResourceParameters.SearchQuery
+                });
+                break;
+            case ResourceUriType.NextPage:
+                return Url.Link("GetAuthors", new
+                {
+                    pageNumber = authorResourceParameters.PageNumber + 1,
+                    pageSize = authorResourceParameters.PageSize,
+                    mainCategory = authorResourceParameters.MainCategory,
+                    searchQuery = authorResourceParameters.SearchQuery
+                });
+                break;
+            default:
+                return Url.Link("GetAuthors", new
+                {
+                    pageNumber = authorResourceParameters.PageNumber,
+                    pageSize = authorResourceParameters.PageSize,
+                    mainCategory = authorResourceParameters.MainCategory,
+                    searchQuery = authorResourceParameters.SearchQuery
+                });
+                break;
+        }
+    }
+
+
+    [HttpGet(Name = "GetAuthors")]
     [HttpHead]
     public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors(
         [FromQuery]AuthorResourceParameters authorResourceParameters)
     { 
         // get authors from repo
         var authorsFromRepo = await _courseLibraryRepository
-            .GetAuthorsAsync(authorResourceParameters); 
+            .GetAuthorsAsync(authorResourceParameters);
+
+        var previousPageLink = authorsFromRepo.HasPrevious
+            ? CreateAuthorsResourceUri(
+                authorResourceParameters,
+                ResourceUriType.PreviousPage)
+            : null;
+
+        var nextPageLink = authorsFromRepo.HasNext
+            ? CreateAuthorsResourceUri(
+                authorResourceParameters,
+                ResourceUriType.NextPage)
+            : null;
+
+        var paginationMetaData = new
+        {
+            totalCount = authorsFromRepo.TotalCount,
+            pageSize = authorsFromRepo.PageSize,
+            currentPage = authorsFromRepo.CurrentPage,
+            totalPages = authorsFromRepo.TotalPages,
+            previousPageLink,
+            nextPageLink
+        };
+
+        Response.Headers.Add(
+            "X-Pagination" , 
+            JsonSerializer.Serialize(paginationMetaData));
 
         // return them
         return Ok(_mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo));
     }
+
 
     [HttpGet("{authorId}", Name = "GetAuthor")]
     public async Task<ActionResult<AuthorDto>> GetAuthor(Guid authorId)
@@ -52,6 +120,7 @@ public class AuthorsController : ControllerBase
         // return author
         return Ok(_mapper.Map<AuthorDto>(authorFromRepo));
     }
+
 
     [HttpPost]
     public async Task<ActionResult<AuthorDto>> CreateAuthor(AuthorForCreationDto author)

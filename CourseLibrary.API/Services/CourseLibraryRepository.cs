@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.API.DbContexts;
 using CourseLibrary.API.Entities;
+using CourseLibrary.API.Helpers;
 using CourseLibrary.API.ResourceParameters;
 using Microsoft.EntityFrameworkCore;
 
@@ -121,7 +122,7 @@ public class CourseLibraryRepository : ICourseLibraryRepository
 #pragma warning restore CS8603 // Possible null reference return.
     }
 
-    public async Task<IEnumerable<Author>> GetAuthorsAsync(AuthorResourceParameters authorResourceParameters)
+    public async Task<PagedList<Author>> GetAuthorsAsync(AuthorResourceParameters authorResourceParameters)
     {
         if (authorResourceParameters is null)
         {
@@ -150,10 +151,8 @@ public class CourseLibraryRepository : ICourseLibraryRepository
         int pageNumer = authorResourceParameters.PageNumber;
         int pageSize = authorResourceParameters.PageSize;
 
-        return await collection
-            .Skip((pageNumer - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        return await PagedList<Author>
+            .CreateAsync(collection , pageNumer , pageSize);
     }
 
     public async Task<IEnumerable<Author>> GetAuthorsAsync()
