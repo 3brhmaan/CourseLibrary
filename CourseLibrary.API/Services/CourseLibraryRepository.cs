@@ -128,10 +128,6 @@ public class CourseLibraryRepository : ICourseLibraryRepository
             throw new ArgumentNullException(nameof(authorResourceParameters));
         }
 
-        if (string.IsNullOrWhiteSpace(authorResourceParameters.MainCategory) && 
-            string.IsNullOrWhiteSpace(authorResourceParameters.SearchQuery))
-            return await GetAuthorsAsync();
-
         var collection = _context.Authors as IQueryable<Author>;
 
         if (!string.IsNullOrWhiteSpace(authorResourceParameters.MainCategory))
@@ -151,7 +147,13 @@ public class CourseLibraryRepository : ICourseLibraryRepository
                     );
         }
 
-        return await collection.ToListAsync();
+        int pageNumer = authorResourceParameters.PageNumber;
+        int pageSize = authorResourceParameters.PageSize;
+
+        return await collection
+            .Skip((pageNumer - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Author>> GetAuthorsAsync()
