@@ -41,7 +41,8 @@ public class AuthorsController : ControllerBase
                     pageNumber = authorResourceParameters.PageNumber - 1,
                     pageSize = authorResourceParameters.PageSize,
                     mainCategory = authorResourceParameters.MainCategory,
-                    searchQuery = authorResourceParameters.SearchQuery
+                    searchQuery = authorResourceParameters.SearchQuery ,
+                    orderBy = authorResourceParameters.OrderBy
                 });
                 break;
             case ResourceUriType.NextPage:
@@ -50,7 +51,8 @@ public class AuthorsController : ControllerBase
                     pageNumber = authorResourceParameters.PageNumber + 1,
                     pageSize = authorResourceParameters.PageSize,
                     mainCategory = authorResourceParameters.MainCategory,
-                    searchQuery = authorResourceParameters.SearchQuery
+                    searchQuery = authorResourceParameters.SearchQuery ,
+                    orderBy = authorResourceParameters.OrderBy
                 });
                 break;
             default:
@@ -59,7 +61,8 @@ public class AuthorsController : ControllerBase
                     pageNumber = authorResourceParameters.PageNumber,
                     pageSize = authorResourceParameters.PageSize,
                     mainCategory = authorResourceParameters.MainCategory,
-                    searchQuery = authorResourceParameters.SearchQuery
+                    searchQuery = authorResourceParameters.SearchQuery ,
+                    orderBy = authorResourceParameters.OrderBy
                 });
                 break;
         }
