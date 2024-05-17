@@ -50,7 +50,7 @@ public static class IEnumerableExtensions
 
             foreach (var propertyInfo in propertyInfoList)
             {
-                var propertyValue = propertyInfo.GetValue(source);
+                var propertyValue = propertyInfo.GetValue(sourceObject);
 
                 ((IDictionary<string , object>)dataShapedObject)
                     .Add(propertyInfo.Name , propertyValue);
