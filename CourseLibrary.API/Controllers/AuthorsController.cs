@@ -1,5 +1,4 @@
-﻿
-using AutoMapper;
+﻿using AutoMapper;
 using CourseLibrary.API.Entities;
 using CourseLibrary.API.Helpers;
 using CourseLibrary.API.Models;
@@ -21,13 +20,13 @@ public class AuthorsController : ControllerBase
 
     public AuthorsController(
         ICourseLibraryRepository courseLibraryRepository,
-        IMapper mapper ,
+        IMapper mapper,
         IPropertyMappingService propertyMappingService)
     {
         _courseLibraryRepository = courseLibraryRepository ??
-            throw new ArgumentNullException(nameof(courseLibraryRepository));
+                                   throw new ArgumentNullException(nameof(courseLibraryRepository));
         _mapper = mapper ??
-            throw new ArgumentNullException(nameof(mapper));
+                  throw new ArgumentNullException(nameof(mapper));
         _propertyMappingService = propertyMappingService;
     }
 
@@ -44,8 +43,9 @@ public class AuthorsController : ControllerBase
                     pageNumber = authorResourceParameters.PageNumber - 1,
                     pageSize = authorResourceParameters.PageSize,
                     mainCategory = authorResourceParameters.MainCategory,
-                    searchQuery = authorResourceParameters.SearchQuery ,
-                    orderBy = authorResourceParameters.OrderBy
+                    searchQuery = authorResourceParameters.SearchQuery,
+                    orderBy = authorResourceParameters.OrderBy ,
+                    fields = authorResourceParameters.Fields
                 });
                 break;
             case ResourceUriType.NextPage:
@@ -54,8 +54,9 @@ public class AuthorsController : ControllerBase
                     pageNumber = authorResourceParameters.PageNumber + 1,
                     pageSize = authorResourceParameters.PageSize,
                     mainCategory = authorResourceParameters.MainCategory,
-                    searchQuery = authorResourceParameters.SearchQuery ,
-                    orderBy = authorResourceParameters.OrderBy
+                    searchQuery = authorResourceParameters.SearchQuery,
+                    orderBy = authorResourceParameters.OrderBy,
+                    fields = authorResourceParameters.Fields
                 });
                 break;
             default:
@@ -64,8 +65,9 @@ public class AuthorsController : ControllerBase
                     pageNumber = authorResourceParameters.PageNumber,
                     pageSize = authorResourceParameters.PageSize,
                     mainCategory = authorResourceParameters.MainCategory,
-                    searchQuery = authorResourceParameters.SearchQuery ,
-                    orderBy = authorResourceParameters.OrderBy
+                    searchQuery = authorResourceParameters.SearchQuery,
+                    orderBy = authorResourceParameters.OrderBy,
+                    fields = authorResourceParameters.Fields
                 });
                 break;
         }
@@ -74,15 +76,13 @@ public class AuthorsController : ControllerBase
 
     [HttpGet(Name = "GetAuthors")]
     [HttpHead]
-    public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors(
-        [FromQuery]AuthorResourceParameters authorResourceParameters)
+    public async Task<IActionResult> GetAuthors(
+        [FromQuery] AuthorResourceParameters authorResourceParameters)
     {
         if (!_propertyMappingService
                 .ValidMappingExistsFor<AuthorDto, Author>(
                     authorResourceParameters.OrderBy))
-        {
             return BadRequest();
-        }
 
         // get authors from repo
         var authorsFromRepo = await _courseLibraryRepository
@@ -111,11 +111,14 @@ public class AuthorsController : ControllerBase
         };
 
         Response.Headers.Add(
-            "X-Pagination" , 
+            "X-Pagination",
             JsonSerializer.Serialize(paginationMetaData));
 
         // return them
-        return Ok(_mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo));
+        return Ok(
+            _mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo)
+                .ShapeData(authorResourceParameters.Fields)
+        );
     }
 
 
@@ -125,10 +128,7 @@ public class AuthorsController : ControllerBase
         // get author from repo
         var authorFromRepo = await _courseLibraryRepository.GetAuthorAsync(authorId);
 
-        if (authorFromRepo == null)
-        {
-            return NotFound();
-        }
+        if (authorFromRepo == null) return NotFound();
 
         // return author
         return Ok(_mapper.Map<AuthorDto>(authorFromRepo));
@@ -154,7 +154,7 @@ public class AuthorsController : ControllerBase
     [HttpOptions]
     public IActionResult GetAuthorOptions()
     {
-        Response.Headers.Add("Allow" , "GET,HEAD,POST,OPTIONS");
+        Response.Headers.Add("Allow", "GET,HEAD,POST,OPTIONS");
         return Ok();
     }
 }
