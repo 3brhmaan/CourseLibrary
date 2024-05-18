@@ -5,6 +5,7 @@ using CourseLibrary.API.Models;
 using CourseLibrary.API.ResourceParameters;
 using CourseLibrary.API.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Newtonsoft.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -17,17 +18,23 @@ public class AuthorsController : ControllerBase
     private readonly ICourseLibraryRepository _courseLibraryRepository;
     private readonly IMapper _mapper;
     private readonly IPropertyMappingService _propertyMappingService;
+    private readonly IPropertyCheckerService _propertyCheckerService;
+    private readonly ProblemDetailsFactory _problemDetailsFactory;
 
     public AuthorsController(
         ICourseLibraryRepository courseLibraryRepository,
         IMapper mapper,
-        IPropertyMappingService propertyMappingService)
+        IPropertyMappingService propertyMappingService ,
+        IPropertyCheckerService propertyCheckerService ,
+        ProblemDetailsFactory problemDetailsFactory)
     {
         _courseLibraryRepository = courseLibraryRepository ??
                                    throw new ArgumentNullException(nameof(courseLibraryRepository));
         _mapper = mapper ??
                   throw new ArgumentNullException(nameof(mapper));
         _propertyMappingService = propertyMappingService;
+        _propertyCheckerService = propertyCheckerService;
+        _problemDetailsFactory = problemDetailsFactory;
     }
 
 
@@ -82,9 +89,22 @@ public class AuthorsController : ControllerBase
         if (!_propertyMappingService
                 .ValidMappingExistsFor<AuthorDto, Author>(
                     authorResourceParameters.OrderBy))
+        {
             return BadRequest();
+        }
 
-        // get authors from repo
+        if (!_propertyCheckerService.TypeHasProperty<AuthorDto>(
+                authorResourceParameters.Fields))
+        {
+            return BadRequest(
+            _problemDetailsFactory.CreateProblemDetails(
+                HttpContext,
+                statusCode: 400,
+                detail: $"not all requested data shaping fields exist on " +
+                    $"the resource: {authorResourceParameters.Fields}"));
+        }
+
+
         var authorsFromRepo = await _courseLibraryRepository
             .GetAuthorsAsync(authorResourceParameters);
 
@@ -114,7 +134,7 @@ public class AuthorsController : ControllerBase
             "X-Pagination",
             JsonSerializer.Serialize(paginationMetaData));
 
-        // return them
+
         return Ok(
             _mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo)
                 .ShapeData(authorResourceParameters.Fields)
@@ -127,12 +147,21 @@ public class AuthorsController : ControllerBase
         Guid authorId ,
         string? fields)
     {
-        // get author from repo
+        if (!_propertyCheckerService.TypeHasProperty<AuthorDto>(
+                fields))
+        {
+            return BadRequest(
+            _problemDetailsFactory.CreateProblemDetails(
+                HttpContext,
+                statusCode: 400,
+                detail: $"not all requested data shaping fields exist on " +
+                    $"the resource: {fields}"));
+        }
+
         var authorFromRepo = await _courseLibraryRepository.GetAuthorAsync(authorId);
 
         if (authorFromRepo == null) return NotFound();
 
-        // return author
         return Ok(_mapper.Map<AuthorDto>(authorFromRepo).ShapeData(fields));
     }
 

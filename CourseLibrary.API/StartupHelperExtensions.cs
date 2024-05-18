@@ -75,6 +75,7 @@ internal static class StartupHelperExtensions
             AppDomain.CurrentDomain.GetAssemblies());
 
         builder.Services.AddTransient<IPropertyMappingService, PropertyMappingService>();
+        builder.Services.AddTransient<IPropertyCheckerService, PropertyCheckerService>();
 
         return builder.Build();
     }
