@@ -81,6 +81,49 @@ public class AuthorsController : ControllerBase
     }
 
 
+    public IEnumerable<LinkDto> CreateLinksForAuthor(
+        Guid authorId,
+        string? fields)
+    {
+        var links = new List<LinkDto>();
+
+        if (string.IsNullOrWhiteSpace(fields))
+        {
+            links.Add(
+                new LinkDto(
+                    Url.Link("GetAuthor" , new {authorId}) ,
+                    "self" ,
+                    "GET")
+            );
+        }
+        else
+        {
+            links.Add(
+                new LinkDto(
+                    Url.Link("GetAuthor", new { authorId , fields}),
+                    "self",
+                    "GET")
+            );
+        }
+
+        links.Add(
+            new LinkDto(
+                Url.Link("CreateCourseForAuthor", new { authorId }),
+                "Create_Course_For_Author",
+                "POST")
+        );
+
+        links.Add(
+            new LinkDto(
+                Url.Link("GetCoursesForAuthor", new { authorId }),
+                "Get_Course_For_Author",
+                "GET")
+        );
+
+        return links;
+    }
+
+
     [HttpGet(Name = "GetAuthors")]
     [HttpHead]
     public async Task<IActionResult> GetAuthors(
@@ -162,10 +205,17 @@ public class AuthorsController : ControllerBase
 
         if (authorFromRepo == null) return NotFound();
 
-        return Ok(_mapper.Map<AuthorDto>(authorFromRepo).ShapeData(fields));
+        var links = CreateLinksForAuthor(authorId, fields);
+
+        var linkedResourceToBeReturn = _mapper.Map<AuthorDto>(authorFromRepo)
+            .ShapeData(fields) as IDictionary<string, object?>;
+
+        linkedResourceToBeReturn.Add("links" , links);
+
+        return Ok(linkedResourceToBeReturn);
     }
 
-
+    
     [HttpPost]
     public async Task<ActionResult<AuthorDto>> CreateAuthor(AuthorForCreationDto author)
     {
