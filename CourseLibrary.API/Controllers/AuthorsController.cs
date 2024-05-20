@@ -126,7 +126,9 @@ public class AuthorsController : ControllerBase
 
 
     public IEnumerable<LinkDto> CreateLinksForAuthors(
-        AuthorResourceParameters authorResourceParameters)
+        AuthorResourceParameters authorResourceParameters ,
+        bool hasNext ,
+        bool hasPrevious)
     {
         var links = new List<LinkDto>();
 
@@ -135,6 +137,24 @@ public class AuthorsController : ControllerBase
             "self" ,
             "GET")
         );
+
+        if(hasNext)
+        {
+            links.Add(new(
+                CreateAuthorsResourceUri(authorResourceParameters, ResourceUriType.NextPage),
+                "next-page",
+                "GET")
+            );
+        }
+
+        if(hasPrevious)
+        {
+            links.Add(new(
+                CreateAuthorsResourceUri(authorResourceParameters, ResourceUriType.PreviousPage),
+                "previous-page",
+                "GET")
+            );
+        }
 
         return links;
     }
@@ -167,36 +187,24 @@ public class AuthorsController : ControllerBase
         var authorsFromRepo = await _courseLibraryRepository
             .GetAuthorsAsync(authorResourceParameters);
 
-        var previousPageLink = authorsFromRepo.HasPrevious
-            ? CreateAuthorsResourceUri(
-                authorResourceParameters,
-                ResourceUriType.PreviousPage)
-            : null;
-
-        var nextPageLink = authorsFromRepo.HasNext
-            ? CreateAuthorsResourceUri(
-                authorResourceParameters,
-                ResourceUriType.NextPage)
-            : null;
-
         var paginationMetaData = new
         {
             totalCount = authorsFromRepo.TotalCount,
             pageSize = authorsFromRepo.PageSize,
             currentPage = authorsFromRepo.CurrentPage,
-            totalPages = authorsFromRepo.TotalPages,
-            previousPageLink,
-            nextPageLink
+            totalPages = authorsFromRepo.TotalPages
         };
 
         Response.Headers.Add(
             "X-Pagination",
             JsonSerializer.Serialize(paginationMetaData));
 
-        var links = CreateLinksForAuthors(authorResourceParameters);
+        var links = CreateLinksForAuthors(authorResourceParameters ,
+                                     authorsFromRepo.HasNext , authorsFromRepo.HasPrevious);
 
-        var shapedAuthors = _mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo)
-                  .ShapeData(authorResourceParameters.Fields);
+        var shapedAuthors = _mapper
+                    .Map<IEnumerable<AuthorDto>>(authorsFromRepo)
+                    .ShapeData(authorResourceParameters.Fields);
 
         var shapedAuthorsWithLinks = shapedAuthors.Select(author =>
         {
