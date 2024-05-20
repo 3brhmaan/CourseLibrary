@@ -66,6 +66,7 @@ public class AuthorsController : ControllerBase
                     fields = authorResourceParameters.Fields
                 });
                 break;
+            case ResourceUriType.Current:
             default:
                 return Url.Link("GetAuthors", new
                 {
@@ -118,6 +119,21 @@ public class AuthorsController : ControllerBase
                 Url.Link("GetCoursesForAuthor", new { authorId }),
                 "Get_Course_For_Author",
                 "GET")
+        );
+
+        return links;
+    }
+
+
+    public IEnumerable<LinkDto> CreateLinksForAuthors(
+        AuthorResourceParameters authorResourceParameters)
+    {
+        var links = new List<LinkDto>();
+
+        links.Add(new(
+            CreateAuthorsResourceUri(authorResourceParameters , ResourceUriType.Current) ,
+            "self" ,
+            "GET")
         );
 
         return links;
@@ -177,11 +193,27 @@ public class AuthorsController : ControllerBase
             "X-Pagination",
             JsonSerializer.Serialize(paginationMetaData));
 
+        var links = CreateLinksForAuthors(authorResourceParameters);
 
-        return Ok(
-            _mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo)
-                .ShapeData(authorResourceParameters.Fields)
-        );
+        var shapedAuthors = _mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo)
+                  .ShapeData(authorResourceParameters.Fields);
+
+        var shapedAuthorsWithLinks = shapedAuthors.Select(author =>
+        {
+            var authorAsDictionary = author as IDictionary<string, object?>;
+            var authorLinks = CreateLinksForAuthor((Guid)authorAsDictionary["Id"], null);
+            authorAsDictionary.Add("links", authorLinks);
+
+            return authorAsDictionary;
+        });
+
+        var linkedCollectionResource = new
+        {
+            value = shapedAuthorsWithLinks,
+            links = links
+        };
+
+        return Ok(linkedCollectionResource);
     }
 
 
