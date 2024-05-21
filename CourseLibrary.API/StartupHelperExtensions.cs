@@ -63,6 +63,19 @@ internal static class StartupHelperExtensions
             };
         });
 
+        builder.Services.Configure<MvcOptions>(config =>
+        {
+            var newtonsoftJsonOutputFormatter = config.OutputFormatters
+                .OfType<NewtonsoftJsonOutputFormatter>()
+                ?.FirstOrDefault();
+
+            if (newtonsoftJsonOutputFormatter is not null)
+            {
+                newtonsoftJsonOutputFormatter.SupportedMediaTypes
+                    .Add("application/vnd.marvin.hateoas+json");
+            }
+        });
+
         builder.Services.AddScoped<ICourseLibraryRepository, 
             CourseLibraryRepository>();
 

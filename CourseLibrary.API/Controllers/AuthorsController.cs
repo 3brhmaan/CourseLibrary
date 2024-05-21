@@ -6,6 +6,7 @@ using CourseLibrary.API.ResourceParameters;
 using CourseLibrary.API.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Net.Http.Headers;
 using Newtonsoft.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -228,8 +229,19 @@ public class AuthorsController : ControllerBase
     [HttpGet("{authorId}", Name = "GetAuthor")]
     public async Task<IActionResult> GetAuthor(
         Guid authorId ,
-        string? fields)
+        string? fields ,
+        [FromHeader(Name = "Accept")] string? mediaType)
     {
+        if (!MediaTypeHeaderValue.TryParse(mediaType, out var parsedMediaType))
+        {
+            return BadRequest(
+                _problemDetailsFactory.CreateProblemDetails(
+                    HttpContext,
+                    statusCode: 400,
+                    detail: $"Accept header media type value isn't a valid media type.")
+                );
+        }
+
         if (!_propertyCheckerService.TypeHasProperty<AuthorDto>(
                 fields))
         {
@@ -245,14 +257,19 @@ public class AuthorsController : ControllerBase
 
         if (authorFromRepo == null) return NotFound();
 
-        var links = CreateLinksForAuthor(authorId, fields);
+        if (parsedMediaType.MediaType == "application/vnd.marvin.hateoas+json")
+        {
+            var links = CreateLinksForAuthor(authorId, fields);
 
-        var linkedResourceToBeReturn = _mapper.Map<AuthorDto>(authorFromRepo)
-            .ShapeData(fields) as IDictionary<string, object?>;
+            var linkedResourceToBeReturn = _mapper.Map<AuthorDto>(authorFromRepo)
+                .ShapeData(fields) as IDictionary<string, object?>;
 
-        linkedResourceToBeReturn.Add("links" , links);
+            linkedResourceToBeReturn.Add("links", links);
 
-        return Ok(linkedResourceToBeReturn);
+            return Ok(linkedResourceToBeReturn);
+        }
+
+        return Ok(_mapper.Map<AuthorDto>(authorFromRepo));
     }
 
     
