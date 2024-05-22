@@ -226,6 +226,11 @@ public class AuthorsController : ControllerBase
     }
 
 
+    [Produces("application/vnd.marvin.author.full.hateoas+json", 
+        "application/json",
+        "application/vnd.marvin.author.friendly.hateoas+json" ,
+        "application/vnd.marvin.author.full+json" ,
+        "application/vnd.marvin.author.friendly+json")]
     [HttpGet("{authorId}", Name = "GetAuthor")]
     public async Task<IActionResult> GetAuthor(
         Guid authorId ,
@@ -257,19 +262,47 @@ public class AuthorsController : ControllerBase
 
         if (authorFromRepo == null) return NotFound();
 
-        if (parsedMediaType.MediaType == "application/vnd.marvin.hateoas+json")
+        var includeLinks = parsedMediaType.SubTypeWithoutSuffix
+            .EndsWith("hateoas", StringComparison.InvariantCultureIgnoreCase);
+
+        IEnumerable<LinkDto> links = new List<LinkDto>();
+        if (includeLinks)
         {
-            var links = CreateLinksForAuthor(authorId, fields);
-
-            var linkedResourceToBeReturn = _mapper.Map<AuthorDto>(authorFromRepo)
-                .ShapeData(fields) as IDictionary<string, object?>;
-
-            linkedResourceToBeReturn.Add("links", links);
-
-            return Ok(linkedResourceToBeReturn);
+            links = CreateLinksForAuthor(authorId, fields);
         }
 
-        return Ok(_mapper.Map<AuthorDto>(authorFromRepo));
+        // without HATEOAS substring
+        var primaryMediaType = includeLinks ?
+            parsedMediaType.SubTypeWithoutSuffix.Substring(
+                0 ,
+                parsedMediaType.SubTypeWithoutSuffix.Length - 8
+                )
+            : parsedMediaType.SubTypeWithoutSuffix;
+
+        // full author
+        if (primaryMediaType == "vnd.marvin.author.full")
+        {
+            var fullResourceToReturn = _mapper.Map<AuthorFullDto>(authorFromRepo)
+                .ShapeData(fields) as IDictionary<string, object?>;
+
+            if (includeLinks)
+            {
+                fullResourceToReturn.Add("links" , links);
+            }
+
+            return Ok(fullResourceToReturn);
+        }
+        
+        // friendly author
+        var friendlyResourceToReturn = _mapper.Map<AuthorDto>(authorFromRepo)
+            .ShapeData(fields) as IDictionary<string, object?>;
+
+        if (includeLinks)
+        {
+            friendlyResourceToReturn.Add("links" , links);
+        }
+
+        return Ok(friendlyResourceToReturn);
     }
 
     
@@ -303,3 +336,6 @@ public class AuthorsController : ControllerBase
         return Ok();
     }
 }
+/*
+ * full author , friendly author , application json
+ */
