@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CourseLibrary.API.ActionConstraints;
 using CourseLibrary.API.Entities;
 using CourseLibrary.API.Helpers;
 using CourseLibrary.API.Models;
@@ -305,9 +306,14 @@ public class AuthorsController : ControllerBase
         return Ok(friendlyResourceToReturn);
     }
 
-    
-    [HttpPost(Name = "CreateAuthor")]
-    public async Task<ActionResult<AuthorDto>> CreateAuthor(AuthorForCreationDto author)
+
+    [HttpPost(Name = "CreateAuthorWithDateOfDeath")]
+    [RequestHeaderMatchesMediaType(
+        "Content-Type",
+        "application/vnd.marvin.authorforcreationwithdateofdeath+json")]
+    [Consumes("application/vnd.marvin.authorforcreationwithdateofdeath+json")]
+    public async Task<ActionResult<AuthorDto>> CreateAuthorWithDateOfDeath(
+        AuthorForCreationWithDateOfDeathDto author)
     {
         var authorEntity = _mapper.Map<Author>(author);
 
@@ -317,11 +323,42 @@ public class AuthorsController : ControllerBase
         var authorToReturn = _mapper.Map<AuthorDto>(authorEntity);
 
         var links = CreateLinksForAuthor(authorToReturn.Id, null);
-        
-        var linkedResourceToReturn = authorToReturn.ShapeData(null) 
+
+        var linkedResourceToReturn = authorToReturn.ShapeData(null)
             as IDictionary<string, object?>;
 
-        linkedResourceToReturn.Add("links" , links);
+        linkedResourceToReturn.Add("links", links);
+
+        return CreatedAtRoute("GetAuthor",
+            new { authorId = linkedResourceToReturn["Id"] },
+            linkedResourceToReturn);
+    }
+
+
+    [HttpPost(Name = "CreateAuthor")]
+    [RequestHeaderMatchesMediaType(
+        "Content-Type",
+        "application/json",
+        "application/vnd.marvin.authorforcreation+json")]
+    [Consumes(
+        "application/json",
+        "application/vnd.marvin.authorforcreation+json")]
+    public async Task<ActionResult<AuthorDto>> CreateAuthor(
+        AuthorForCreationDto author)
+    {
+        var authorEntity = _mapper.Map<Author>(author);
+
+        _courseLibraryRepository.AddAuthor(authorEntity);
+        await _courseLibraryRepository.SaveAsync();
+
+        var authorToReturn = _mapper.Map<AuthorDto>(authorEntity);
+
+        var links = CreateLinksForAuthor(authorToReturn.Id, null);
+
+        var linkedResourceToReturn = authorToReturn.ShapeData(null)
+            as IDictionary<string, object?>;
+
+        linkedResourceToReturn.Add("links", links);
 
         return CreatedAtRoute("GetAuthor",
             new { authorId = linkedResourceToReturn["Id"] },
@@ -336,6 +373,3 @@ public class AuthorsController : ControllerBase
         return Ok();
     }
 }
-/*
- * full author , friendly author , application json
- */
