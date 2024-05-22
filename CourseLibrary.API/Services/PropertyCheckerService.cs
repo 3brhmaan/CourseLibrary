@@ -4,7 +4,7 @@ namespace CourseLibrary.API.Services;
 
 public class PropertyCheckerService : IPropertyCheckerService
 {
-    public bool TypeHasProperty<T>(string? fields)
+    public bool TypeHasProperties<T>(string? fields)
     {
         if (string.IsNullOrWhiteSpace(fields))
             return true;
