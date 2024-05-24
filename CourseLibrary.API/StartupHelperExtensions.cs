@@ -77,6 +77,8 @@ internal static class StartupHelperExtensions
         builder.Services.AddTransient<IPropertyMappingService, PropertyMappingService>();
         builder.Services.AddTransient<IPropertyCheckerService, PropertyCheckerService>();
 
+        builder.Services.AddResponseCaching();
+
         return builder.Build();
     }
 
@@ -99,7 +101,9 @@ internal static class StartupHelperExtensions
                 });
             });
         }
- 
+
+        app.UseResponseCaching();
+
         app.UseAuthorization();
 
         app.MapControllers(); 
