@@ -19,7 +19,10 @@ internal static class StartupHelperExtensions
             {
                 // false -> return default format 'JSON'
                 configure.ReturnHttpNotAcceptable = true;
-
+                configure.CacheProfiles.Add(
+                    "240SecondsCacheProfile" ,
+                    new CacheProfile(){Duration = 240}
+                );
             })
         .AddNewtonsoftJson(setupAction =>
         {
